@@ -1,95 +1,61 @@
 import express from "express";
 
-import {
-  init as exchangeInit,
-  getAccounts,
-  setAccountBalance,
-  getRates,
-  setRate,
-  getLog,
-  exchange,
-} from "./exchange.js";
+import { AccountsRepository } from "./repository/accounts.js";
+import { RatesRepository } from "./repository/rates.js";
+import { LogRepository } from "./repository/log.js";
 
-await exchangeInit();
+import { AccountsService } from "./services/accounts.js";
+import { RatesService } from "./services/rates.js";
+import { LogService } from "./services/log.js";
+import { ExchangeService } from "./services/exchange.js";
+
+import { createAccountsRouter } from "./api/accounts.js";
+import { createRatesRouter } from "./api/rates.js";
+import { createLogRouter } from "./api/log.js";
+import { createExchangeRouter } from "./api/exchange.js";
+
+import { DomainError } from "./exceptions/errors.js";
+
+// single shared instance per resource, so every service/route
+// reads and writes the same in-memory state
+const accountsRepository = new AccountsRepository();
+const ratesRepository = new RatesRepository();
+const logRepository = new LogRepository();
+
+await accountsRepository.init();
+await ratesRepository.init();
+await logRepository.init();
+
+const accountsService = new AccountsService(accountsRepository);
+const ratesService = new RatesService(ratesRepository);
+const logService = new LogService(logRepository);
+const exchangeService = new ExchangeService(
+  accountsRepository,
+  ratesRepository,
+  logRepository
+);
 
 const app = express();
 const port = 3000;
 
 app.use(express.json());
 
-// ACCOUNT endpoints
+app.use("/accounts", createAccountsRouter(accountsService));
+app.use("/rates", createRatesRouter(ratesService));
+app.use("/log", createLogRouter(logService));
+app.use("/exchange", createExchangeRouter(exchangeService));
 
-app.get("/accounts", (req, res) => {
-  res.json(getAccounts());
-});
-
-app.put("/accounts/:id/balance", (req, res) => {
-  const accountId = req.params.id;
-  const { balance } = req.body;
-
-  if (!accountId || !balance) {
-    return res.status(400).json({ error: "Malformed request" });
-  } else {
-    setAccountBalance(accountId, balance);
-
-    res.json(getAccounts());
-  }
-});
-
-// RATE endpoints
-
-app.get("/rates", (req, res) => {
-  res.json(getRates());
-});
-
-app.put("/rates", (req, res) => {
-  const { baseCurrency, counterCurrency, rate } = req.body;
-
-  if (!baseCurrency || !counterCurrency || !rate) {
-    return res.status(400).json({ error: "Malformed request" });
+app.use((err, req, res, next) => {
+  if (err instanceof DomainError) {
+    return res.status(err.status).json({ error: err.message });
   }
 
-  const newRateRequest = { ...req.body };
-  setRate(newRateRequest);
-
-  res.json(getRates());
-});
-
-// LOG endpoint
-
-app.get("/log", (req, res) => {
-  res.json(getLog());
-});
-
-// EXCHANGE endpoint
-
-app.post("/exchange", async (req, res) => {
-  const {
-    baseCurrency,
-    counterCurrency,
-    baseAccountId,
-    counterAccountId,
-    baseAmount,
-  } = req.body;
-
-  if (
-    !baseCurrency ||
-    !counterCurrency ||
-    !baseAccountId ||
-    !counterAccountId ||
-    !baseAmount
-  ) {
-    return res.status(400).json({ error: "Malformed request" });
+  if (err.type === "entity.parse.failed") {
+    return res.status(400).json({ error: "Malformed JSON body" });
   }
 
-  const exchangeRequest = { ...req.body };
-  const exchangeResult = await exchange(exchangeRequest);
-
-  if (exchangeResult.ok) {
-    res.status(200).json(exchangeResult);
-  } else {
-    res.status(500).json(exchangeResult);
-  }
+  console.error(err);
+  res.status(500).json({ error: "Internal server error" });
 });
 
 app.listen(port, () => {

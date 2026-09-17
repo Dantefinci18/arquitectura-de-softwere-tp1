@@ -2,37 +2,48 @@ import { fileURLToPath } from "url";
 import path from "path";
 import fs from "fs";
 
-let accounts = null;
-let rates = null;
-let log = null;
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const ACCOUNTS = "./state/accounts.json";
-const RATES = "./state/rates.json";
-const LOG = "./state/log.json";
+const ACCOUNTS = "../state/accounts.json";
 
-export async function init() {
-  accounts = await load(ACCOUNTS);
-  rates = await load(RATES);
-  log = await load(LOG);
 
-  scheduleSave(accounts, ACCOUNTS, 1000);
-  scheduleSave(rates, RATES, 5000);
-  scheduleSave(log, LOG, 1000);
-}
+export class AccountsRepository {
+  constructor() {
+    this.accounts = null;
+  }
 
-export function getAccounts() {
-  return accounts;
-}
+  async init() {
+    this.accounts = await load(ACCOUNTS);
 
-export function getRates() {
-  return rates;
-}
+    scheduleSave(this.accounts, ACCOUNTS, 1000);
+  }
 
-export function getLog() {
-  return log;
+  getAccounts() {
+    return this.accounts;
+  }
+
+  getAccountById(id) {
+    return this.accounts.find((account) => account.id == id) ?? null;
+  }
+
+  getAccountByCurrency(currency) {
+    return this.accounts.find((account) => account.currency == currency) ?? null;
+  }
+
+  setAccountBalance(accountId, balance) {
+    const account = this.getAccountById(accountId);
+    if (account != null) {
+      account.balance = balance;
+    }
+  }
+
+  adjustAccountBalance(accountId, delta) {
+    const account = this.getAccountById(accountId);
+    if (account != null) {
+      account.balance += delta;
+    }
+  }
 }
 
 async function load(fileName) {
@@ -41,7 +52,7 @@ async function load(fileName) {
   try {
     await fs.promises.access(filePath);
     const raw = await fs.promises.readFile(filePath, "utf8");
-    
+
     return JSON.parse(raw);
   } catch (err) {
     if (err.code == "ENOENT") {

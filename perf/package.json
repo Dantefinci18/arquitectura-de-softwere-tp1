@@ -10,7 +10,10 @@
     "rates-stress": "artillery run rates-stress.yaml -e api",
     "accounts": "artillery run accounts.yaml -e api",
     "accounts-stress": "artillery run accounts-stress.yaml -e api",
-    "scenario": "./run-scenario.sh"
+    "scenario": "./run-scenario.sh",
+    "log": "artillery run log.yaml -e api",
+    "log-stress": "artillery run log-stress.yaml -e api",
+    "exchange": "artillery run exchange.yaml -e api",
   },
   "author": "",
   "license": "ISC",

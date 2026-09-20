@@ -6,6 +6,8 @@
   "scripts": {
     "artillery": "artillery",
     "api": "artillery run rates.yaml -e api",
+    "accounts": "artillery run accounts.yaml -e api",
+    "accounts-stress": "artillery run accounts-stress.yaml -e api",
     "scenario": "./run-scenario.sh"
   },
   "author": "",

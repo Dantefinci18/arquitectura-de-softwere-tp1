@@ -1,6 +1,8 @@
 services:
     api:
       build: ./app
+      cpus: "2.0"
+      mem_limit: "1g"
 
     nginx:
         image: nginx:1.29.8
@@ -30,7 +32,7 @@ services:
             - "grafana_config:/var/lib/grafana"
 
     cadvisor:
-        image: gcr.io/cadvisor/cadvisor:v0.51.0
+        image: gcr.io/cadvisor/cadvisor:v0.55.1
         links:
             - graphite
         command: -storage_driver="statsd" -storage_driver_host="graphite:8125" -storage_driver_db="cadvisor" -storage_driver_buffer_duration="1s" --docker_only=true

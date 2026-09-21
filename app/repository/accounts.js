@@ -11,6 +11,7 @@ const ACCOUNTS = "../state/accounts.json";
 export class AccountsRepository {
   constructor() {
     this.accounts = null;
+    this.locks = new Map();
   }
 
   async init() {
@@ -43,6 +44,31 @@ export class AccountsRepository {
     if (account != null) {
       account.balance += delta;
     }
+  }
+
+  async withAccountsLock(accountIds, fn) {
+    const ids = [...new Set(accountIds)].sort();
+    const releases = [];
+    try {
+      for (const id of ids) {
+        releases.push(await this.acquireLock(id));
+      }
+      return await fn();
+    } finally {
+      for (const release of releases.reverse()) {
+        release();
+      }
+    }
+  }
+
+  acquireLock(accountId) {
+    const tail = this.locks.get(accountId) ?? Promise.resolve();
+    let release;
+    const held = new Promise((resolve) => {
+      release = resolve;
+    });
+    this.locks.set(accountId, tail.then(() => held));
+    return tail.then(() => release);
   }
 }
 

@@ -9,7 +9,7 @@ config:
           prefix: "artillery-api"
 
   http:
-    pool: 50 # All HTTP requests from all virtual users will be sent over the same connections
+    pool: 50
 
   phases:
     - name: Warm up
@@ -27,7 +27,7 @@ config:
       arrivalRate: 5
 
 scenarios:
-  - name: Rates (/rates)
+  - name: Log (/log)
     flow:
       - get:
-          url: '/rates'
+          url: '/log'

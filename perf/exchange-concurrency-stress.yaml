@@ -6,7 +6,7 @@ config:
         statsd:
           host: localhost
           port: 8125
-          prefix: "artillery-api"
+          prefix: "artillery-exchange-parallel"
 
   http:
     pool: 300
@@ -38,6 +38,19 @@ config:
     - name: Recovery 25 rps
       duration: 60
       arrivalRate: 25
+
+# Reload internal ARS/USD accounts so the stress run measures exchange latency
+# under load, not instant rejections after balances are drained.
+before:
+  flow:
+    - put:
+        url: '/accounts/1/balance'
+        json:
+          balance: 1000000000000
+    - put:
+        url: '/accounts/2/balance'
+        json:
+          balance: 1000000000000
 
 # Same two scenarios as exchange-concurrency.yaml (USD <-> ARS, same internal
 # accounts on both directions) but pushed through the step-load ramp above, to

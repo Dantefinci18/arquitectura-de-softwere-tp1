@@ -1,1 +1,32 @@
-             baseAmount: 1750000
+config:
+  environments:
+    api:
+      target: 'http://localhost:5555'
+      plugins:
+        statsd:
+          host: localhost
+          port: 8125
+          prefix: "artillery-exchange-parallel"
+
+  http:
+    pool: 50
+
+  # Short concurrent burst that deliberately exhausts the internal USD account.
+  # No account reload on purpose: the goal is to verify that concurrent overdraft
+  # attempts cannot leave internal balances negative.
+  phases:
+    - name: Overdraft burst
+      duration: 30
+      arrivalRate: 20
+
+scenarios:
+  - name: Overdraft ARS -> USD
+    flow:
+      - post:
+          url: '/exchange'
+          json:
+            baseCurrency: 'ARS'
+            counterCurrency: 'USD'
+            baseAccountId: 'client-{{ $randomNumber(1, 10000) }}'
+            counterAccountId: 'client-{{ $randomNumber(1, 10000) }}'
+            baseAmount: 1750000

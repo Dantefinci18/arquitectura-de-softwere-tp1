@@ -6,7 +6,7 @@ config:
         statsd:
           host: localhost
           port: 8125
-          prefix: "artillery-api"
+          prefix: "artillery-exchange-parallel"
 
   http:
     pool: 50
@@ -19,6 +19,19 @@ config:
     - name: Plain
       duration: 60
       arrivalRate: 5
+
+# Reload internal ARS/USD accounts so the run measures exchange latency,
+# not instant "not enough funds" rejections after balances are drained.
+before:
+  flow:
+    - put:
+        url: '/accounts/1/balance'
+        json:
+          balance: 1000000000000
+    - put:
+        url: '/accounts/2/balance'
+        json:
+          balance: 1000000000000
 
 # Both flows below exchange between the same two internal accounts (USD <-> ARS),
 # on purpose: this is what makes concurrent exchanges contend for the same

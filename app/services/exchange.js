@@ -51,21 +51,48 @@ export class ExchangeService {
     );
 
     if (reserved) {
-      if (await transfer(clientBaseAccountId, baseAccount.id, baseAmount)) {
-        // try to transfer to clients' counter account
-        if (await transfer(counterAccount.id, clientCounterAccountId, counterAmount)) {
-          // all good, the reservation already reflects the final balances
-          exchangeResult.ok = true;
-          exchangeResult.counterAmount = counterAmount;
-        } else {
-          // could not transfer to clients' counter account, return base amount to client
-          await transfer(baseAccount.id, clientBaseAccountId, baseAmount);
-          await this.releaseReservation(baseAccount.id, counterAccount.id, baseAmount, counterAmount);
-          exchangeResult.obs = "Could not transfer to clients' account";
-        }
+      // Introduce Concurrency: both legs are independent after the reservation,
+      // so launch them together. Latency floor becomes max(t1, t2) instead of t1+t2.
+      const [inflow, outflow] = await Promise.allSettled([
+        transfer(clientBaseAccountId, baseAccount.id, baseAmount),
+        transfer(counterAccount.id, clientCounterAccountId, counterAmount),
+      ]);
+
+      const inflowOk = inflow.status === "fulfilled" && inflow.value === true;
+      const outflowOk = outflow.status === "fulfilled" && outflow.value === true;
+
+      if (inflowOk && outflowOk) {
+        exchangeResult.ok = true;
+        exchangeResult.counterAmount = counterAmount;
+      } else if (inflowOk && !outflowOk) {
+        // Client was charged but not paid: reverse the charge, then undo reservation.
+        await transfer(baseAccount.id, clientBaseAccountId, baseAmount);
+        await this.releaseReservation(
+          baseAccount.id,
+          counterAccount.id,
+          baseAmount,
+          counterAmount
+        );
+        exchangeResult.obs = "Could not transfer to clients' account";
+      } else if (!inflowOk && outflowOk) {
+        // Client was paid but not charged: recover the payout, then undo reservation.
+        // This intermediate state only appears with concurrent transfers.
+        await transfer(clientCounterAccountId, counterAccount.id, counterAmount);
+        await this.releaseReservation(
+          baseAccount.id,
+          counterAccount.id,
+          baseAmount,
+          counterAmount
+        );
+        exchangeResult.obs = "Could not withdraw from clients' account";
       } else {
-        // could not withdraw from clients' account, release the reservation
-        await this.releaseReservation(baseAccount.id, counterAccount.id, baseAmount, counterAmount);
+        // Neither leg succeeded: only release the reservation.
+        await this.releaseReservation(
+          baseAccount.id,
+          counterAccount.id,
+          baseAmount,
+          counterAmount
+        );
         exchangeResult.obs = "Could not withdraw from clients' account";
       }
     }

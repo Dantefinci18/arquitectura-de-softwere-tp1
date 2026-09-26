@@ -10,6 +10,8 @@
     "exchange-concurrency": "artillery run exchange-concurrency.yaml -e api",
     "exchange-concurrency-stress": "artillery run exchange-concurrency-stress.yaml -e api",
     "exchange-concurrency-overdraft": "artillery run exchange-concurrency-overdraft.yaml -e api",
+    "log": "artillery run log.yaml -e api",
+    "log-stress": "artillery run log-stress.yaml -e api",
     "scenario": "./run-scenario.sh"
   },
   "author": "",

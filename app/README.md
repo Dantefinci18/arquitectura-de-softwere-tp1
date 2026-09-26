@@ -10,9 +10,11 @@ El servicio tiene un Dockerfile para poder armar una imagen de Docker y levantar
 
 ### Almacenamiento
 
-El storage de cuentas, tasas y el log se mantiene, por ahora, en unos archivos JSON. Tienen que existir 3 archivos en el directorio `./state`:
+El storage de cuentas, tasas y el log se mantiene en una base de datos externa [Redis](https://redis.io/). El servicio se conecta usando la variable de entorno `REDIS_URL` (por defecto `redis://localhost:6379`).
 
-`accounts.json`
+Se guardan 3 claves en Redis, cada una con un valor JSON serializado:
+
+`accounts`
 
 Tiene un array con las cuentas de la empresa, con la moneda y el saldo actual. Ejemplo de una cuenta:
 
@@ -22,7 +24,7 @@ Tiene un array con las cuentas de la empresa, con la moneda y el saldo actual. E
         "balance": 2000000
     }
 
-`rates.json`
+`rates`
 
 Tiene un objeto con las tasas de cambio. Ejemplo de una tasa:
 
@@ -32,7 +34,7 @@ Tiene un objeto con las tasas de cambio. Ejemplo de una tasa:
         "USD": 0.00094
     }
 
-`log.json`
+`log`
 
 Tiene un array con el log de transacciones del sistema. Ejemplo de una entrada de log:
 
@@ -51,6 +53,8 @@ Tiene un array con el log de transacciones del sistema. Ejemplo de una entrada d
         "counterAmount": 106400,
         "obs": null
     }
+
+Si alguna de estas claves no existe en Redis (por ejemplo, la primera vez que se levanta el servicio), se inicializa con valores por defecto definidos en `state.js`.
 
 ## Endpoints
 
@@ -121,6 +125,5 @@ Devuelve el log de operaciones. Este log se persiste cada 5 segundos.
 
 ## TODO
 
-- No me gusta guardar todo en archivos .json, por ahora va, pero tendría que hacer algo distinto.
 - No valida casi nada, solo que los parámetros de los JSON tengan algún valor :collision:
 - Ver el tema del manejo de las cuentas, debería ser responsabilidad de otro servicio.

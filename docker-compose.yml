@@ -3,6 +3,17 @@ services:
       build: ./app
       cpus: "2.0"
       mem_limit: "1g"
+      environment:
+        - REDIS_URL=redis://redis:6379
+      depends_on:
+        - redis
+
+    redis:
+      image: redis:7.4
+      ports:
+        - "6379:6379"
+      volumes:
+        - redis_data:/data
 
     nginx:
         image: nginx:1.29.8
@@ -46,4 +57,6 @@ services:
 
 volumes:
     grafana_config:
+        driver: local
+    redis_data:
         driver: local

@@ -1,6 +1,21 @@
 services:
     api:
       build: ./app
+      environment:
+        - REDIS_URL=redis://redis:6379
+      depends_on:
+        redis:
+          condition: service_healthy
+
+    redis:
+      image: redis:7.4
+      volumes:
+        - redis_data:/data
+      healthcheck:
+        test: ["CMD", "redis-cli", "ping"]
+        interval: 5s
+        timeout: 3s
+        retries: 5
 
     nginx:
         image: nginx:1.29.8
@@ -44,4 +59,6 @@ services:
 
 volumes:
     grafana_config:
+        driver: local
+    redis_data:
         driver: local

@@ -15,6 +15,9 @@ import { createLogRouter } from "./api/log.js";
 import { createExchangeRouter } from "./api/exchange.js";
 
 import { DomainError } from "./exceptions/errors.js";
+import { connectRedis } from "./repository/redisClient.js";
+
+await connectRedis();
 
 // single shared instance per resource, so every service/route
 // reads and writes the same in-memory state

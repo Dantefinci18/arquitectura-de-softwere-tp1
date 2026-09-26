@@ -6,7 +6,7 @@ config:
         statsd:
           host: localhost
           port: 8125
-          prefix: "artillery-exchange-parallel"
+          prefix: "artillery-exchange-redis"
 
   http:
     pool: 50

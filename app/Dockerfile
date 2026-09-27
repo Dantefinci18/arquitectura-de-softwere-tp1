@@ -7,5 +7,6 @@ COPY api ./api
 COPY repository ./repository
 COPY services ./services
 COPY exceptions ./exceptions
+COPY metrics ./metrics
 RUN npm install
 ENTRYPOINT [ "node", "app.js" ]

@@ -16,6 +16,7 @@ import { createExchangeRouter } from "./api/exchange.js";
 
 import { DomainError } from "./exceptions/errors.js";
 import { connectRedis } from "./repository/redisClient.js";
+import { StatsdClient } from "./metrics/statsd.js";
 
 await connectRedis();
 
@@ -35,7 +36,8 @@ const logService = new LogService(logRepository);
 const exchangeService = new ExchangeService(
   accountsRepository,
   ratesRepository,
-  logRepository
+  logRepository,
+  new StatsdClient()
 );
 
 const app = express();

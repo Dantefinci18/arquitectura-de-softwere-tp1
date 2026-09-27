@@ -1,10 +1,11 @@
 import { nanoid } from "nanoid";
 
 export class ExchangeService {
-  constructor(accountsRepository, ratesRepository, logRepository) {
+  constructor(accountsRepository, ratesRepository, logRepository, metrics) {
     this.accountsRepository = accountsRepository;
     this.ratesRepository = ratesRepository;
     this.logRepository = logRepository;
+    this.metrics = metrics;
   }
 
   // executes an exchange operation
@@ -64,6 +65,7 @@ export class ExchangeService {
       if (inflowOk && outflowOk) {
         exchangeResult.ok = true;
         exchangeResult.counterAmount = counterAmount;
+        this.recordVolume(baseCurrency, counterCurrency, baseAmount, counterAmount);
       } else if (inflowOk && !outflowOk) {
         // Client was charged but not paid: reverse the charge, then undo reservation.
         await transfer(baseAccount.id, clientBaseAccountId, baseAmount);
@@ -101,6 +103,18 @@ export class ExchangeService {
     this.logRepository.addLog(exchangeResult);
 
     return exchangeResult;
+  }
+
+  // volume and net per currency
+  recordVolume(baseCurrency, counterCurrency, baseAmount, counterAmount) {
+    if (!this.metrics) {
+      return;
+    }
+
+    this.metrics.count(`volume.${baseCurrency}`, Number(baseAmount));
+    this.metrics.count(`volume.${counterCurrency}`, counterAmount);
+    this.metrics.count(`net.${baseCurrency}`, Number(baseAmount));
+    this.metrics.count(`net.${counterCurrency}`, -counterAmount);
   }
 
   // undo a reservation made in exchange() when the external transfers

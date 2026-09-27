@@ -1,6 +1,8 @@
 services:
     api:
       build: ./app
+      cpus: "2.0"
+      mem_limit: "1g"
 
     nginx:
         image: nginx:1.29.8

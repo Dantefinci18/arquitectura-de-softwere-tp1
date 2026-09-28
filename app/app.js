@@ -13,6 +13,7 @@ import { createAccountsRouter } from "./api/accounts.js";
 import { createRatesRouter } from "./api/rates.js";
 import { createLogRouter } from "./api/log.js";
 import { createExchangeRouter } from "./api/exchange.js";
+import { createHealthRouter } from "./api/health.js";
 
 import { DomainError } from "./exceptions/errors.js";
 import { connectRedis } from "./repository/redisClient.js";
@@ -45,6 +46,7 @@ const port = 3000;
 
 app.use(express.json());
 
+app.use("/health", createHealthRouter());
 app.use("/accounts", createAccountsRouter(accountsService));
 app.use("/rates", createRatesRouter(ratesService));
 app.use("/log", createLogRouter(logService));

@@ -710,9 +710,14 @@
             "selected": false,
             "text": "artillery-exchange-redis",
             "value": "artillery-exchange-redis"
+          },
+          {
+            "selected": false,
+            "text": "artillery-log-pag-redis",
+            "value": "artillery-log-pag-redis"
           }
         ],
-        "query": "artillery-api,artillery-exchange-redis",
+        "query": "artillery-api,artillery-exchange-redis,artillery-log-pag-redis",
         "skipUrlSync": false,
         "type": "custom"
       },

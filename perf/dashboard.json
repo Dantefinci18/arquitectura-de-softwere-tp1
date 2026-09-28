@@ -487,9 +487,14 @@
             "selected": true,
             "text": "artillery-api",
             "value": "artillery-api"
+          },
+          {
+            "selected": false,
+            "text": "artillery-exchange-redis",
+            "value": "artillery-exchange-redis"
           }
         ],
-        "query": "artillery-api",
+        "query": "artillery-api,artillery-exchange-redis",
         "skipUrlSync": false,
         "type": "custom"
       },

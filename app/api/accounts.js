@@ -5,11 +5,15 @@ import { MalformedRequestError } from "../exceptions/errors.js";
 export function createAccountsRouter(accountsService) {
   const router = Router();
 
-  router.get("/", (req, res) => {
-    res.json(accountsService.getAccounts());
+  router.get("/", async (req, res, next) => {
+    try {
+      res.json(await accountsService.getAccounts());
+    } catch (err) {
+      next(err);
+    }
   });
 
-  router.put("/:id/balance", (req, res, next) => {
+  router.put("/:id/balance", async (req, res, next) => {
     const accountId = req.params.id;
     const { balance } = req.body;
 
@@ -17,9 +21,12 @@ export function createAccountsRouter(accountsService) {
       return next(new MalformedRequestError());
     }
 
-    accountsService.setAccountBalance(accountId, balance);
-
-    res.json(accountsService.getAccounts());
+    try {
+      await accountsService.setAccountBalance(accountId, balance);
+      res.json(await accountsService.getAccounts());
+    } catch (err) {
+      next(err);
+    }
   });
 
   return router;

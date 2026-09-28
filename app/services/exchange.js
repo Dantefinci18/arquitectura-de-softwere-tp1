@@ -22,10 +22,10 @@ export class ExchangeService {
     const exchangeRate = this.ratesRepository.getRate(baseCurrency, counterCurrency);
     // compute the requested (counter) amount
     const counterAmount = baseAmount * exchangeRate;
-    // find our account on the provided (base) currency
-    const baseAccount = this.accountsRepository.getAccountByCurrency(baseCurrency);
-    // find our account on the counter currency
-    const counterAccount = this.accountsRepository.getAccountByCurrency(counterCurrency);
+    const [baseAccount, counterAccount] = await Promise.all([
+      this.accountsRepository.getAccountByCurrency(baseCurrency),
+      this.accountsRepository.getAccountByCurrency(counterCurrency),
+    ]);
 
     // construct the result object with defaults
     const exchangeResult = {
@@ -38,18 +38,18 @@ export class ExchangeService {
       obs: null,
     };
 
-    const reserved = await this.accountsRepository.withAccountsLock(
-      [baseAccount.id, counterAccount.id],
-      () => {
-        if (counterAccount.balance < counterAmount) {
-          exchangeResult.obs = "Not enough funds on counter currency account";
-          return false;
-        }
-        this.accountsRepository.adjustAccountBalance(baseAccount.id, baseAmount);
-        this.accountsRepository.adjustAccountBalance(counterAccount.id, -counterAmount);
-        return true;
-      }
+    const reservation = await this.accountsRepository.atomicFundsTransfer(
+      baseAccount.id,
+      baseAmount,
+      counterAccount.id,
+      counterAmount
     );
+
+    if (!reservation.ok && reservation.reason === "insufficient_funds") {
+      exchangeResult.obs = "Not enough funds on counter currency account";
+    }
+
+    const reserved = reservation.ok;
 
     if (reserved) {
       // Introduce Concurrency: both legs are independent after the reservation,
@@ -120,12 +120,11 @@ export class ExchangeService {
   // undo a reservation made in exchange() when the external transfers
   // didn't go through after all
   async releaseReservation(baseAccountId, counterAccountId, baseAmount, counterAmount) {
-    await this.accountsRepository.withAccountsLock(
-      [baseAccountId, counterAccountId],
-      () => {
-        this.accountsRepository.adjustAccountBalance(baseAccountId, -baseAmount);
-        this.accountsRepository.adjustAccountBalance(counterAccountId, counterAmount);
-      }
+    await this.accountsRepository.atomicAdjustTwo(
+      baseAccountId,
+      -baseAmount,
+      counterAccountId,
+      counterAmount
     );
   }
 }

@@ -4,12 +4,12 @@ export class AccountsService {
   }
 
   // returns all internal accounts
-  getAccounts() {
-    return this.repository.getAccounts();
+  async getAccounts() {
+    return await this.repository.getAccounts();
   }
 
   // sets balance for an account
-  setAccountBalance(accountId, balance) {
-    this.repository.setAccountBalance(accountId, balance);
+  async setAccountBalance(accountId, balance) {
+    await this.repository.setAccountBalance(accountId, balance);
   }
 }

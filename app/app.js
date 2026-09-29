@@ -1,4 +1,4 @@
-import express from "express";
+﻿import express from "express";
 
 import { AccountsRepository } from "./repository/accounts.js";
 import { RatesRepository } from "./repository/rates.js";
@@ -18,6 +18,7 @@ import { createHealthRouter } from "./api/health.js";
 import { DomainError } from "./exceptions/errors.js";
 import { connectRedis } from "./repository/redisClient.js";
 import { StatsdClient } from "./metrics/statsd.js";
+import { createRateLimiter } from "./middleware/rateLimit.js";
 
 await connectRedis();
 
@@ -46,11 +47,14 @@ const port = 3000;
 
 app.use(express.json());
 
+const logLimiter = createRateLimiter({ windowMs: 1000, max: 300 });
+const exchangeLimiter = createRateLimiter({ windowMs: 1000, max: 350 });
+
 app.use("/health", createHealthRouter());
 app.use("/accounts", createAccountsRouter(accountsService));
 app.use("/rates", createRatesRouter(ratesService));
-app.use("/log", createLogRouter(logService));
-app.use("/exchange", createExchangeRouter(exchangeService));
+app.use("/log", logLimiter, createLogRouter(logService));
+app.use("/exchange", exchangeLimiter, createExchangeRouter(exchangeService));
 
 app.use((err, req, res, next) => {
   if (err instanceof DomainError) {

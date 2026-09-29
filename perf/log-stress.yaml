@@ -6,7 +6,7 @@ config:
         statsd:
           host: localhost
           port: 8125
-          prefix: "artillery-log-pag-redis"
+          prefix: "artillery-log-cache"
 
   http:
     pool: 300

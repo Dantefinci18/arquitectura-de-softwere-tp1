@@ -715,9 +715,19 @@
             "selected": false,
             "text": "artillery-log-pag-redis",
             "value": "artillery-log-pag-redis"
+          },
+          {
+            "selected": false,
+            "text": "artillery-log-nocache",
+            "value": "artillery-log-nocache"
+          },
+          {
+            "selected": false,
+            "text": "artillery-log-cache",
+            "value": "artillery-log-cache"
           }
         ],
-        "query": "artillery-api,artillery-exchange-redis,artillery-log-pag-redis",
+        "query": "artillery-api,artillery-exchange-redis,artillery-log-pag-redis,artillery-log-nocache,artillery-log-cache",
         "skipUrlSync": false,
         "type": "custom"
       },

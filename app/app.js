@@ -48,7 +48,7 @@ const port = 3000;
 app.use(express.json());
 
 const logLimiter = createRateLimiter({ windowMs: 1000, max: 300 });
-const exchangeLimiter = createRateLimiter({ windowMs: 1000, max: 350 });
+const exchangeLimiter = createRateLimiter({ windowMs: 1000, max: 500 });
 
 app.use("/health", createHealthRouter());
 app.use("/accounts", createAccountsRouter(accountsService));

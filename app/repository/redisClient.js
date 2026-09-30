@@ -23,6 +23,14 @@ export function getRedisClient() {
   return client;
 }
 
+// used by test teardown to close the connection cleanly between runs
+export async function disconnectRedis() {
+  if (client != null) {
+    await client.quit();
+    client = null;
+  }
+}
+
 async function readSeedFile(seedFile) {
   const filePath = path.join(__dirname, "../state", seedFile);
   const raw = await fs.promises.readFile(filePath, "utf8");
@@ -50,7 +58,7 @@ export async function loadOrSeed(key, seedFile) {
 }
 
 export function scheduleSnapshot(key, getData, period) {
-  setInterval(async () => {
+  const timer = setInterval(async () => {
     try {
       const data = getData();
       await getRedisClient().set(key, JSON.stringify(data));
@@ -58,4 +66,8 @@ export function scheduleSnapshot(key, getData, period) {
       console.error(`Error writing ${key} to Redis:`, err);
     }
   }, period);
+
+  // don't let the periodic snapshot keep the process (or a test runner) alive
+  timer.unref();
+  return timer;
 }

@@ -1,11 +1,16 @@
 import { nanoid } from "nanoid";
 
 export class ExchangeService {
-  constructor(accountsRepository, ratesRepository, logRepository, metrics) {
+  // `transfer` is injectable so tests can control/observe both legs of the
+  // exchange (success, failure, ordering) instead of depending on the
+  // random 200-400ms stub, which always resolves true and never exercises
+  // the reconciliation branches below.
+  constructor(accountsRepository, ratesRepository, logRepository, metrics, transferFn = transfer) {
     this.accountsRepository = accountsRepository;
     this.ratesRepository = ratesRepository;
     this.logRepository = logRepository;
     this.metrics = metrics;
+    this.transfer = transferFn;
   }
 
   // executes an exchange operation
@@ -55,8 +60,8 @@ export class ExchangeService {
       // Introduce Concurrency: both legs are independent after the reservation,
       // so launch them together. Latency floor becomes max(t1, t2) instead of t1+t2.
       const [inflow, outflow] = await Promise.allSettled([
-        transfer(clientBaseAccountId, baseAccount.id, baseAmount),
-        transfer(counterAccount.id, clientCounterAccountId, counterAmount),
+        this.transfer(clientBaseAccountId, baseAccount.id, baseAmount),
+        this.transfer(counterAccount.id, clientCounterAccountId, counterAmount),
       ]);
 
       const inflowOk = inflow.status === "fulfilled" && inflow.value === true;
@@ -68,7 +73,7 @@ export class ExchangeService {
         this.recordVolume(baseCurrency, counterCurrency, baseAmount, counterAmount);
       } else if (inflowOk && !outflowOk) {
         // Client was charged but not paid: reverse the charge, then undo reservation.
-        await transfer(baseAccount.id, clientBaseAccountId, baseAmount);
+        await this.transfer(baseAccount.id, clientBaseAccountId, baseAmount);
         await this.releaseReservation(
           baseAccount.id,
           counterAccount.id,
@@ -79,7 +84,7 @@ export class ExchangeService {
       } else if (!inflowOk && outflowOk) {
         // Client was paid but not charged: recover the payout, then undo reservation.
         // This intermediate state only appears with concurrent transfers.
-        await transfer(clientCounterAccountId, counterAccount.id, counterAmount);
+        await this.transfer(clientCounterAccountId, counterAccount.id, counterAmount);
         await this.releaseReservation(
           baseAccount.id,
           counterAccount.id,

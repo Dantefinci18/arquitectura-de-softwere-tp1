@@ -1,5 +1,3 @@
-﻿import express from "express";
-
 import { AccountsRepository } from "./repository/accounts.js";
 import { RatesRepository } from "./repository/rates.js";
 import { LogRepository } from "./repository/log.js";
@@ -9,16 +7,9 @@ import { RatesService } from "./services/rates.js";
 import { LogService } from "./services/log.js";
 import { ExchangeService } from "./services/exchange.js";
 
-import { createAccountsRouter } from "./api/accounts.js";
-import { createRatesRouter } from "./api/rates.js";
-import { createLogRouter } from "./api/log.js";
-import { createExchangeRouter } from "./api/exchange.js";
-import { createHealthRouter } from "./api/health.js";
-
-import { DomainError } from "./exceptions/errors.js";
 import { connectRedis } from "./repository/redisClient.js";
 import { StatsdClient } from "./metrics/statsd.js";
-import { createRateLimiter } from "./middleware/rateLimit.js";
+import { createApp } from "./createApp.js";
 
 await connectRedis();
 
@@ -42,32 +33,9 @@ const exchangeService = new ExchangeService(
   new StatsdClient()
 );
 
-const app = express();
+const app = createApp({ accountsService, ratesService, logService, exchangeService });
+
 const port = 3000;
-
-app.use(express.json());
-
-const logLimiter = createRateLimiter({ windowMs: 1000, max: 300 });
-const exchangeLimiter = createRateLimiter({ windowMs: 1000, max: 500 });
-
-app.use("/health", createHealthRouter());
-app.use("/accounts", createAccountsRouter(accountsService));
-app.use("/rates", createRatesRouter(ratesService));
-app.use("/log", logLimiter, createLogRouter(logService));
-app.use("/exchange", exchangeLimiter, createExchangeRouter(exchangeService));
-
-app.use((err, req, res, next) => {
-  if (err instanceof DomainError) {
-    return res.status(err.status).json({ error: err.message });
-  }
-
-  if (err.type === "entity.parse.failed") {
-    return res.status(400).json({ error: "Malformed JSON body" });
-  }
-
-  console.error(err);
-  res.status(500).json({ error: "Internal server error" });
-});
 
 app.listen(port, () => {
   console.log(`Exchange API listening on port ${port}`);
